@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Analysis Dashboard with AutoML</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <script
+      src="https://cdn.plot.ly/plotly-2.27.0.min.js"
+      charset="utf-8"
+    ></script>
+    <link rel="stylesheet" href="{{url_for('static', filename='style.css')}}" />
+  </head>
+  <body>
+    <div class="main-header">
+      <div class="container">
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <h1><i class="fas fa-robot"></i> Data Analysis Dashboard</h1>
+            <p class="lead mb-0">Upload your data and let AI do the analysis</p>
+          </div>
+          <div class="col-md-4 text-end">
+            <button
+              class="btn btn-sm btn-outline-light me-2"
+              id="clearSessionBtn"
+            >
+              <i class="fas fa-redo"></i> New Analysis
+            </button>
+            <span class="badge bg-light text-dark fs-6">
+              <i class="fas fa-microchip"></i> AutoML Powered
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div id="notification" class="notification"></div>
+
+      <div class="row mb-4">
+        <div class="col-md-8 mx-auto">
+          <div class="upload-area" id="uploadArea">
+            <i
+              class="fas fa-cloud-upload-alt fa-4x mb-3"
+              style="color: #667eea"
+            ></i>
+            <h4>Drop your dataset here</h4>
+            <p class="text-muted">or click to browse</p>
+            <input
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              id="fileInput"
+              style="display: none"
+            />
+            <br />
+            <button class="btn btn-gradient mt-2" id="selectFileBtn">
+              <i class="fas fa-upload"></i> Select File
+            </button>
+            <p class="text-muted mt-3 small">
+              <i class="fas fa-info-circle"></i> Supports CSV, Excel files up to
+              50MB
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div id="loadingSpinner" class="loading-spinner">
+        <div
+          class="spinner-border text-primary"
+          role="status"
+          style="width: 3rem; height: 3rem"
+        >
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Processing your data...</p>
+      </div>
+
+      <div id="resultsSection" style="display: none">
+        <div class="row mb-4" id="summaryStats">
+          <div class="col-md-3">
+            <div class="stat-card text-center">
+              <i class="fas fa-table fa-2x mb-2" style="color: #667eea"></i>
+              <div class="stat-value" id="rowCount">0</div>
+              <small class="text-muted">Rows</small>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card text-center">
+              <i class="fas fa-columns fa-2x mb-2" style="color: #667eea"></i>
+              <div class="stat-value" id="colCount">0</div>
+              <small class="text-muted">Columns</small>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card text-center">
+              <i class="fas fa-chart-pie fa-2x mb-2" style="color: #667eea"></i>
+              <div class="stat-value" id="missingCount">0</div>
+              <small class="text-muted">Missing Values</small>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card text-center">
+              <i class="fas fa-star fa-2x mb-2" style="color: #667eea"></i>
+              <div class="stat-value" id="qualityScore">—</div>
+              <small class="text-muted">Data Quality</small>
+            </div>
+          </div>
+        </div>
+
+        <ul class="nav nav-pills mb-3" id="mainTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link active"
+              id="overview-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#overview"
+              type="button"
+              role="tab"
+            >
+              <i class="fas fa-info-circle"></i> Overview
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="visualisations-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#visualisations"
+              type="button"
+              role="tab"
+            >
+              <i class="fas fa-chart-bar"></i> Visualisations
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="profile-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#profile"
+              type="button"
+              role="tab"
+            >
+              <i class="fas fa-clipboard-list"></i> Data Profile
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="automl-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#automl"
+              type="button"
+              role="tab"
+            >
+              <i class="fas fa-brain"></i> AutoML
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="predict-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#predict"
+              type="button"
+              role="tab"
+            >
+              <i class="fas fa-magic"></i> Predict
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content">
+          <div class="tab-pane fade show active" id="overview" role="tabpanel">
+            <h5><i class="fas fa-eye"></i> Data Preview</h5>
+            <div id="preview-table"></div>
+          </div>
+
+          <div class="tab-pane fade" id="visualisations" role="tabpanel">
+            <div class="d-flex justify-content-between mb-3">
+              <h5><i class="fas fa-chart-line"></i> Auto-generated Charts</h5>
+              <button
+                class="btn btn-sm btn-outline-primary"
+                id="refreshChartsBtn"
+              >
+                <i class="fas fa-sync"></i> Refresh
+              </button>
+            </div>
+            <div id="chartsContainer" class="row"></div>
+          </div>
+
+          <div class="tab-pane fade" id="profile" role="tabpanel">
+            <h5><i class="fas fa-clipboard-list"></i> Data Profile</h5>
+            <div id="profileContent" class="profile-section"></div>
+          </div>
+
+          <div class="tab-pane fade" id="automl" role="tabpanel">
+            <h5><i class="fas fa-robot"></i> Automated Machine Learning</h5>
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i> AutoML will automatically
+              detect the problem type, train multiple models and select the best
+              performer.
+            </div>
+            <button class="btn btn-gradient mb-3" id="runAutoMLBtn">
+              <i class="fas fa-play"></i> Run AutoML
+            </button>
+            <div id="automlResults"></div>
+          </div>
+
+          <div class="tab-pane fade" id="predict" role="tabpanel">
+            <h5><i class="fas fa-magic"></i> Make Predictions</h5>
+            <div id="predictIntro" class="alert alert-info">
+              Run <strong>AutoML</strong> first to train a model, then enter
+              feature values below.
+            </div>
+
+            <div id="predictContent" style="display: none">
+              <div
+                class="d-flex justify-content-between align-items-center mb-3"
+              >
+                <div>
+                  <span class="badge badge-ai" id="modelBadge">—</span>
+                  <small class="text-muted ms-2"
+                    >Target: <span id="predictTarget">—</span></small
+                  >
+                </div>
+                <div>
+                  <button
+                    class="btn btn-sm btn-outline-secondary"
+                    id="fillExampleBtn"
+                  >
+                    <i class="fas fa-magic"></i> Fill with example
+                  </button>
+                  <button
+                    class="btn btn-sm btn-outline-success"
+                    id="downloadModelBtn"
+                  >
+                    <i class="fas fa-download"></i> Download Model
+                  </button>
+                </div>
+              </div>
+
+              <div id="predictForm" class="row"></div>
+
+              <button class="btn btn-gradient mt-3" id="predictBtn">
+                <i class="fas fa-play"></i> Predict
+              </button>
+
+              <div id="predictResults" class="mt-4"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+      crossorigin="anonymous"
+    ></script>
+    <script src="{{url_for('static', filename='dashboard.js')}}"></script>
+  </body>
+</html>

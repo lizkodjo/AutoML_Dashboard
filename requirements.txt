@@ -1,0 +1,8 @@
+Flask
+python-dotenv
+pandas
+numpy
+plotly
+scikit-learn
+joblib
+openpyxl
