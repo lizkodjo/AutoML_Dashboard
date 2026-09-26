@@ -107,7 +107,7 @@ AutoML_Dashboard/
 
 ### Data Flow
 
-1. `/upload` — file is saved, parsed into pandas, persisted as CSV under a session UUID, profiled and visualized.
+1. `/upload` — file is saved, parsed into pandas, persisted as CSV under a session UUID, profiled and visualised.
 2. `/analyse` — the CSV is reloaded, AutoML trains three models, the best is saved to `uploads/models/<session>.pkl`.
 3. `/predict` — the model bundle is loaded, incoming JSON is encoded/scaled to match training and a prediction is returned.
 
