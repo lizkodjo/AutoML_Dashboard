@@ -1,18 +1,19 @@
 # Data Analysis Dashboard with AutoML
 
-An interactive web dashboard that lets you upload a CSV/Excel dataset, automatically profile it, generate visualizations, train ML models, and make predictions — all without writing code.
+An interactive web dashboard that lets you upload a CSV/Excel dataset, automatically profile it, generate visualisations, train ML models and make predictions — all without writing code.
 
-![Dashboard Screenshot](docs/screenshot.png)
+![Dashboard Screenshot](images/dashboard.png)
 
 ## Features
 
-- **File Upload** — drag-and-drop CSV or Excel files (up to 50MB)
-- **Data Profiling** — automatic column statistics, missing-value analysis, data quality score
-- **Auto-Visualizations** — 5–7 auto-generated Plotly charts, intelligently chosen based on column types
-- **AutoML** — trains Random Forest, Gradient Boosting, and (Logistic/Linear) Regression; picks the best performer
-- **Feature Importance** — ranks the top 10 predictive features
-- **Predictions** — enter feature values and get instant model predictions with probabilities
-- **Model Export** — download the trained model bundle as a `.pkl` file
+- **File Upload** — drag-and-drop CSV or Excel files (up to 50MB).
+- **Multi-sheet Excel** - when a workbook has multiple sheets, a selector appears; switching re-profiles and re-charts the new sheet without re-uploading.
+- **Data Profiling** — automatic column statistics, missing-value analysis, data quality score.
+- **Auto-Visualisations** — 5–7 auto-generated Plotly charts, intelligently chosen based on column types.
+- **AutoML** — trains Random Forest, Gradient Boosting and (Logistic/Linear) Regression; picks the best performer.
+- **Feature Importance** — ranks the top 10 predictive features.
+- **Predictions** — enter feature values and get instant model predictions with probabilities.
+- **Model Export** — download the trained model bundle as a `.pkl` file.
 
 ## Tech Stack
 
@@ -20,7 +21,7 @@ An interactive web dashboard that lets you upload a CSV/Excel dataset, automatic
 |---|---|
 | Web framework | Flask |
 | Data manipulation | pandas, NumPy |
-| Visualization | Plotly (Express + Graph Objects) |
+| Visualisation | Plotly (Express + Graph Objects) |
 | Machine Learning | scikit-learn |
 | Model persistence | joblib |
 | Frontend | Bootstrap 5 + vanilla JavaScript |
@@ -29,8 +30,8 @@ An interactive web dashboard that lets you upload a CSV/Excel dataset, automatic
 
 ```bash
 # Clone the repo
-git clone <your-repo-url>
-cd data_dashboard
+git clone https://github.com/lizkodjo/AutoML_Dashboard.git
+cd AutoML_Dashboard
 
 # Create and activate a virtual environment
 python -m venv venv
@@ -58,14 +59,18 @@ Then open http://localhost:5000 in your browser.
 4. **Predict** — open the Predict tab, fill in feature values (or use "Fill with example"), and click Predict
 
 ## Project Structure
+
 ```
-data_dashboard/
+AutoML_Dashboard/
 ├── run.py                      # Development entry point
 ├── config.py                   # Config classes (Dev/Test/Prod)
 ├── requirements.txt
 ├── requirements-dev.txt        # pytest
+├── pytest.ini
 ├── .env.example
 ├── README.md
+├── scripts/
+│   └── create_test_excel.py    # Dev utility for generating Excel fixtures
 ├── dashboard/
 │   ├── __init__.py             # create_app() factory
 │   ├── ml/                     # AutoML, profiler, visualiser
@@ -77,13 +82,13 @@ data_dashboard/
 │   │   ├── __init__.py
 │   │   ├── main.py             # /, /clear_session
 │   │   ├── upload.py           # /upload
-│   │   ├── analysis.py         # /analyse, /generate_chart, /suggest_features
+│   │   ├── analysis.py         # /analyse, /generate_chart, /suggest_features, /switch_sheet
 │   │   ├── ml.py               # /predict, /model_info, /download_model
 │   │   └── export.py           # /export_results
 │   ├── services/
 │   │   ├── __init__.py
 │   │   ├── json_utils.py       # to_jsonable(), jsonify_safe()
-│   │   └── session_store.py    # Session-scoped file persistence
+│   │   └── session_store.py    # Session-scoped file persistence (CSV + Excel meta)
 │   ├── templates/
 │   │   └── index.html
 │   └── static/
@@ -102,17 +107,17 @@ data_dashboard/
 
 ### Data Flow
 
-1. `/upload` — file is saved, parsed into pandas, persisted as CSV under a session UUID, profiled, and visualized
-2. `/analyse` — the CSV is reloaded, AutoML trains three models, the best is saved to `uploads/models/<session>.pkl`
-3. `/predict` — the model bundle is loaded, incoming JSON is encoded/scaled to match training, and a prediction is returned
+1. `/upload` — file is saved, parsed into pandas, persisted as CSV under a session UUID, profiled and visualized.
+2. `/analyse` — the CSV is reloaded, AutoML trains three models, the best is saved to `uploads/models/<session>.pkl`.
+3. `/predict` — the model bundle is loaded, incoming JSON is encoded/scaled to match training and a prediction is returned.
 
 ### Session Isolation
 
 Each browser session gets its own UUID. Uploaded data and trained models are keyed by that UUID. This makes the app safe for concurrent users and lets users start over with `/clear_session`.
 
-### JSON Serialization
+### JSON Serialisation
 
-pandas and NumPy produce types (`numpy.int64`, `numpy.float64`, `Timestamp`) that Python's `json` module can't serialize. The `_json_default` callback in `app.py` handles these globally — every response goes through `json_safe()` before being returned.
+Pandas and NumPy produce types (`numpy.int64`, `numpy.float64`, `Timestamp`) that Python's `json` module can't serialise. The `_json_default` callback in `app.py` handles these globally — every response goes through `json_safe()` before being returned.
 
 ## Known Limitations
 

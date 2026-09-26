@@ -2,15 +2,18 @@ from __future__ import annotations
 import os
 import warnings
 
+# Anchor all paths to the project root
+_BASE_DIR: str = os.path.abspath(os.path.dirname(__file__))
+
 
 class BaseConfig:
     """Shared configuration"""
 
     SECRET_KEY: str | None = os.getenv("SECRET_KEY")
-    UPLOAD_FOLDER: str = "uploads"
+    UPLOAD_FOLDER: str = os.path.join(_BASE_DIR, "uploads")
     DATA_FOLDER: str = os.path.join(UPLOAD_FOLDER, "data")
     MODEL_FOLDER: str = os.path.join(UPLOAD_FOLDER, "models")
-    ALLOWED_EXTENSIONS: frozenset[str] = frozenset({"csv", "xlsx", "xls"})
+    ALLOWED_EXTENSIONS: frozenset[str] = frozenset({"csv", "xlsx"})
     MAX_CONTENT_LENGTH: int = 50 * 1024 * 1024
 
     @classmethod

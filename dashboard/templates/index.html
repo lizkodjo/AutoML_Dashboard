@@ -55,7 +55,7 @@
             <p class="text-muted">or click to browse</p>
             <input
               type="file"
-              accept=".csv,.xlsx,.xls"
+              accept=".csv,.xlsx"
               id="fileInput"
               style="display: none"
             />
@@ -110,6 +110,24 @@
               <i class="fas fa-star fa-2x mb-2" style="color: #667eea"></i>
               <div class="stat-value" id="qualityScore">—</div>
               <small class="text-muted">Data Quality</small>
+            </div>
+          </div>
+        </div>
+
+        <div id="sheetSelectorContainer" class="row mb-3" style="display: none">
+          <div class="col-12">
+            <div class="alert alert-info d-flex align-items-center mb-0">
+              <i class="fas fa-file-excel me-2"></i>
+              <span class="me-3">
+                Multi-sheet file —
+                <strong id="activeSheetName">—</strong>
+                loaded (<span id="sheetCount">0</span> sheets total)
+              </span>
+              <select
+                id="sheetSelector"
+                class="form-select form-select-sm"
+                style="width: auto"
+              ></select>
             </div>
           </div>
         </div>

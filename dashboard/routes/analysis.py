@@ -1,12 +1,22 @@
 from __future__ import annotations
+import os
 
 from flask import Blueprint, request, session
 import numpy as np
+import pandas as pd
 
 from dashboard.ml.auto_ml import AutoML
+from dashboard.ml.profiler import DataProfiler
 from dashboard.ml.visualiser import Visualiser
 from dashboard.services.json_utils import jsonify_safe
-from dashboard.services.session_store import load_df, model_path_for
+from dashboard.services.session_store import (
+    get_session_id,
+    load_df,
+    load_excel_meta,
+    model_path_for,
+    save_df,
+    save_excel_meta,
+)
 
 bp = Blueprint("analysis", __name__)
 
@@ -111,3 +121,69 @@ def suggest_features():
         return jsonify_safe({"success": True, "suggestions": suggestions[:10]})
     except Exception as e:  # noqa: BLE001
         return jsonify_safe({"error": str(e)}, 500)
+
+
+@bp.route("/switch_sheet", methods=["POST"])
+def switch_sheet():
+    """Switch to a different sheet in the currently uploaded Excel file."""
+    try:
+        meta = load_excel_meta()
+        if meta is None:
+            return jsonify_safe({"error": "No Excel file in current session"}, 400)
+
+        payload = request.get_json(silent=True) or {}
+        new_sheet = payload.get("sheet_name")
+        if not new_sheet:
+            return jsonify_safe({"error": "sheet_name is required."}, 400)
+
+        if new_sheet not in meta["sheet_names"]:
+            return jsonify_safe(
+                {
+                    "error": (
+                        f"Sheet '{new_sheet}' not found.  Available: '{meta["sheet_names"]}'"
+                    )
+                },
+                400,
+            )
+
+        excel_path = meta["excel_path"]
+        if not os.path.exists(excel_path):
+            return jsonify_safe({"error": "Original Excel file not found."}, 400)
+
+        df = pd.read_excel(excel_path, sheet_name=new_sheet)
+        if len(df) == 0:
+            return jsonify_safe({"error": f"Sheet '{new_sheet}' has no data rows"}, 400)
+
+        save_df(df)
+        save_excel_meta(
+            get_session_id(),
+            meta["original_filename"],
+            meta["sheet_names"],
+            new_sheet,
+            excel_path,
+        )
+
+        profile = DataProfiler(df).generate_profile()
+        charts = Visualiser(df).generate_auto_charts(num_charts=7)
+
+        return jsonify_safe(
+            {
+                "success": True,
+                "filename": meta["original_filename"],
+                "rows": int(len(df)),
+                "columns": int(len(df.columns)),
+                "profile": profile,
+                "charts": charts,
+                "preview": df.head(10).to_html(classes="table table-striped", border=0),
+                "sheet_info": {
+                    "sheet_names": meta["sheet_names"],
+                    "active_sheet": new_sheet,
+                    "sheet_count": len(meta["sheet_names"]),
+                },
+            }
+        )
+    except Exception as e:  # noqa: BLE001
+        import traceback
+
+        traceback.print_exc()
+        return jsonify_safe({"error": str(e)})

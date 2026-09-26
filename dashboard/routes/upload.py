@@ -8,7 +8,7 @@ from config import BaseConfig
 from dashboard.ml.profiler import DataProfiler
 from dashboard.ml.visualiser import Visualiser
 from dashboard.services.json_utils import jsonify_safe
-from dashboard.services.session_store import get_session_id, save_df
+from dashboard.services.session_store import get_session_id, save_df, save_excel_meta
 
 bp = Blueprint("upload", __name__)
 
@@ -19,6 +19,26 @@ def _allowed_file(filename: str) -> bool:
         "." in filename
         and filename.rsplit(".", 1)[1].lower() in BaseConfig.ALLOWED_EXTENSIONS
     )
+
+
+def _load_dataframe(
+    raw_filepath: str, ext: str
+) -> tuple[pd.DataFrame, dict | None, list[str] | None, str | None]:
+    """Load a DataFrame from disk."""
+
+    if ext == "csv":
+        return pd.read_csv(raw_filepath), None, None, None
+
+    xl = pd.ExcelFile(raw_filepath)
+    sheet_names = xl.sheet_names
+    active_sheet = sheet_names[0]
+    df = xl.parse(active_sheet)
+    sheet_info = {
+        "sheet_names": sheet_names,
+        "active_sheet": active_sheet,
+        "sheet_count": len(sheet_names),
+    }
+    return df, sheet_info, sheet_names, active_sheet
 
 
 @bp.route("/upload", methods=["POST"])
@@ -43,10 +63,22 @@ def upload_file():
         raw_filepath = os.path.join(BaseConfig.UPLOAD_FOLDER, raw_filename)
         file.save(raw_filepath)
 
-        df = pd.read_csv(raw_filepath) if ext == "csv" else pd.read_excel(raw_filepath)
+        df, sheet_info, sheet_names, active_sheet = _load_dataframe(raw_filepath, ext)
+
+        if len(df) == 0:
+            return jsonify_safe({"error": "File contains no data rows."}, 400)
 
         save_df(df)
         session["filename"] = file.filename
+
+        if sheet_info is not None and sheet_names is not None:
+            save_excel_meta(
+                session_id,
+                file.filename,
+                sheet_names,
+                active_sheet,  # type: ignore[arg-type]
+                raw_filepath,
+            )
 
         profile = DataProfiler(df).generate_profile()
         charts = Visualiser(df).generate_auto_charts(num_charts=7)
@@ -61,6 +93,7 @@ def upload_file():
                 "profile": profile,
                 "charts": charts,
                 "preview": df.head(10).to_html(classes="table table-striped", border=0),
+                "sheet_info": sheet_info,
             }
         )
     except Exception as e:  # noqa: BLE001

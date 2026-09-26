@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import io
 from pathlib import Path
 
 import pandas as pd
@@ -21,7 +23,7 @@ def client(app):
 
 @pytest.fixture
 def sample_df() -> pd.DataFrame:
-    """Sample dataset used across tests."""
+    """Sample tabular dataset used across tests."""
     return pd.DataFrame(
         {
             "age": [25, 30, 35, 40, 45, 50, 55, 60, 65, 70],
@@ -61,6 +63,38 @@ def sample_csv(tmp_path: Path, sample_df: pd.DataFrame) -> Path:
     path = tmp_path / "test_data.csv"
     sample_df.to_csv(path, index=False)
     return path
+
+
+@pytest.fixture
+def sample_xlsx_bytes(sample_df: pd.DataFrame) -> bytes:
+    """Sample dataset serialised as a single-sheet .xlsx, as bytes."""
+    buf = io.BytesIO()
+    sample_df.to_excel(buf, index=False, engine="openpyxl")
+    return buf.getvalue()
+
+
+@pytest.fixture
+def multi_sheet_xlsx_bytes() -> bytes:
+    """Two-sheet Excel workbook, as bytes. Sheet 'Alpha' is first."""
+    df_a = pd.DataFrame(
+        {
+            "x": [1, 2, 3, 4, 5, 6, 7, 8],
+            "y": [10, 20, 30, 40, 50, 60, 70, 80],
+            "target": [0, 1, 0, 1, 0, 1, 0, 1],
+        }
+    )
+    df_b = pd.DataFrame(
+        {
+            "a": ["p", "q", "r", "s", "t", "u", "v", "w"],
+            "b": [100, 200, 300, 400, 500, 600, 700, 800],
+            "target": [0, 1, 0, 1, 0, 1, 0, 1],
+        }
+    )
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        df_a.to_excel(writer, index=False, sheet_name="Alpha")
+        df_b.to_excel(writer, index=False, sheet_name="Beta")
+    return buf.getvalue()
 
 
 @pytest.fixture
